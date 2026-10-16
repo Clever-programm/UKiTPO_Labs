@@ -308,6 +308,111 @@ def a5():
     d.save("bpmn_a5.png")
 
 
+def client_scaffold(w=200):
+    """Точка зрения клиента: раскрытый пул «Клиент», свёрнутые пулы ИС (сверху) и автосервиса (снизу)."""
+    h = 80
+    d = Diagram(w, h)
+    d.blackbox(1, 71, w - 2, 8, "ИС автосервиса (сайт, SMS-уведомления)")
+    d.pool(1, 65, w - 2, "Клиент", [("", 50)])
+    d.blackbox(1, 1, w - 2, 8, "Автосервис (мастер-приёмщик, автомеханики)")
+    return d, 40, 71, 9  # диаграмма, ось процесса, низ верхнего пула, верх нижнего пула
+
+
+def client1():
+    d, yc, up, dn = client_scaffold()
+    d.group(9, 17, 102, 63, "A1 «Записаться на обслуживание»")
+    d.group(105, 17, 197, 63, "A2 «Сдать автомобиль и согласовать работы»")
+
+    s2 = d.event(16, yc + 10, "start", "message", label="Напоминание\nо ТО")
+    s1 = d.event(16, yc - 10, "start", label="Нужен\nремонт")
+    g0 = d.gateway(28, yc, "x")
+    g1 = d.gateway(40, yc, "x", label="Способ\nзаписи?", lpos="r")
+    ton = d.task(58, yc + 10, "Записаться онлайн:\nуслуга, дата, время", w=19)
+    tph = d.task(58, yc - 10, "Записаться\nпо телефону")
+    g2 = d.gateway(76, yc, "x")
+    ec = d.event(87, yc, "inter", "message", label="Запись\nподтвер-\nждена")
+    ed = d.event(97, yc, "inter", "timer", label="День\nвизита")
+    tg = d.task(115, yc, "Сдать\nавтомобиль\nмастеру")
+    ta = d.task(135, yc, "Согласовать\nработы, стоимость\nи срок", w=18)
+    g3 = d.gateway(152, yc, "x", label="Условия\nустраивают?", lpos="t")
+    er = d.event(152, yc - 14, "end", label="Отказ от\nобслуживания", lpos="r")
+    ts = d.task(169, yc, "Подписать\nзаказ-наряд\nи акт приёма")
+    el = d.event(189, yc, "inter", "link_throw", label="Переход\nк A3")
+
+    d.flow(s2.r, (28, yc + 10), g0.t)
+    d.flow(s1.r, (28, yc - 10), g0.b)
+    d.flow(g0.r, g1.l)
+    d.flow(g1.t, (40, yc + 10), ton.l, label="Онлайн", lxy=(41, yc + 10.5))
+    d.flow(g1.b, (40, yc - 10), tph.l, label="Звонок", lxy=(41, yc - 9.5))
+    d.flow(ton.r, (76, yc + 10), g2.t)
+    d.flow(tph.r, (76, yc - 10), g2.b)
+    d.flow(g2.r, ec.l)
+    d.flow(ec.r, ed.l)
+    d.flow(ed.r, tg.l)
+    d.flow(tg.r, ta.l)
+    d.flow(ta.r, g3.l)
+    d.flow(g3.b, er.t, label="Нет", lxy=(152.8, yc - 6.5))
+    d.flow(g3.r, ts.l, label="Да", lxy=(155.5, yc + 0.5))
+    d.flow(ts.r, el.l)
+
+    d.msg((16, up), s2.t, label="SMS-напоминание", lxy=(17, 58))
+    d.msg(ton.t, (58, up), label="Заявка на запись", lxy=(59, 58))
+    d.msg(tph.b, (58, dn), label="Звонок", lxy=(59, 22))
+    d.msg((87, up), ec.t, label="SMS-подтверждение", lxy=(73, 58), ha="left")
+    d.msg(tg.b, (115, dn), label="Автомобиль", lxy=(116, 22))
+    d.msg((132, dn), ta.at(-3, "b"), label="Перечень работ,\nстоимость, срок", lxy=(119, 29), ha="left")
+    d.msg(ta.at(3, "b"), (138, dn), label="Решение", lxy=(139, 22))
+    d.msg((169, dn), ts.b, label="Заказ-наряд,\nакт приёма", lxy=(170, 22))
+    zn = d.data(180, yc + 12, "Заказ-наряд", lpos="r")
+    d.assoc(ts.at(4), (173, yc + 12), zn.l)
+    d.save("bpmn_client_1.png")
+
+
+def client2():
+    d, yc, up, dn = client_scaffold()
+    d.group(8, 17, 89, 63, "A3 «Отслеживать ход ремонта, согласовать доп. работы»")
+    d.group(92, 17, 197, 63, "A4 «Оплатить работы и получить автомобиль»")
+
+    el = d.event(14, yc, "inter", "link", label="Из A2")
+    gm = d.gateway(25, yc, "x")
+    eg = d.gateway(37, yc, "event")
+    er = d.event(51, yc + 12, "inter", "message", label="Автомобиль\nготов")
+    ex = d.event(51, yc - 12, "inter", "message", label="Запрос на\nсогласование\nдоп. работ", lpos="t")
+    td = d.task(70, yc - 12, "Принять решение,\nсообщить мастеру", w=18)
+    tc = d.task(106, yc, "Приехать,\nпроверить\nквитанцию")
+    g4 = d.gateway(123, yc, "x", label="Всё\nверно?", lpos="t")
+    tq = d.task(123, yc - 12, "Запросить\nисправление")
+    tp = d.task(142, yc, "Оплатить\nработы", w=15)
+    tg = d.task(161, yc, "Получить\nавтомобиль\nи документы")
+    ee = d.event(179, yc, "end", label="Автомобиль\nполучен")
+
+    d.flow(el.r, gm.l)
+    d.flow(gm.r, eg.l)
+    d.flow(eg.t, (37, yc + 12), er.l)
+    d.flow(eg.b, (37, yc - 12), ex.l)
+    d.flow(ex.r, td.l)
+    d.flow(td.r, (84, yc - 12), (84, yc - 22), (25, yc - 22), gm.b)
+    d.flow(er.r, (94, yc + 12), (94, yc), tc.l)
+    d.flow(tc.r, g4.l)
+    d.flow(g4.b, tq.t, label="Нет", lxy=(123.8, yc - 6.5))
+    d.flow(tq.l, (106, yc - 12), tc.b)
+    d.flow(g4.r, tp.l, label="Да", lxy=(126.5, yc + 0.5))
+    d.flow(tp.r, tg.l)
+    d.flow(tg.r, ee.l)
+
+    d.msg((51, up), er.t, label="SMS о готовности", lxy=(52, 58))
+    d.msg((51, dn), ex.b, label="Звонок / SMS", lxy=(52, 20.5))
+    d.msg(td.at(2, "b"), (72, dn), label="Согласие / отказ", lxy=(73, 20.5))
+    d.msg((103, dn), tc.at(-3, "b"), label="Квитанция", lxy=(102, 22.5), ha="right")
+    d.msg(tq.b, (123, dn), label="Претензия", lxy=(124, 20.5))
+    d.msg(tp.b, (142, dn), label="Оплата", lxy=(143, 22.5))
+    d.msg((161, dn), tg.b, label="Автомобиль,\nчек", lxy=(162, 22.5))
+    d.msg((164, up), tg.at(3), label="Электронная\nквитанция", lxy=(165, 57))
+    d.note(184, yc + 13, "ИС сохраняет\nисторию и\nнапомнит\nо следующем ТО", h=11)
+    d.assoc((181.4, yc + 1.5), (184, yc + 8), arrow=False)
+    d.save("bpmn_client_2.png")
+
+
 if __name__ == "__main__":
     legend()
     overview()
@@ -316,3 +421,5 @@ if __name__ == "__main__":
     a3()
     a4()
     a5()
+    client1()
+    client2()

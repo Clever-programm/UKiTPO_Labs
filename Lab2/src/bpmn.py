@@ -130,6 +130,12 @@ class Diagram:
                              color="k", lw=0.5, zorder=6)
             self.ax.plot([x, x + 0.25], [y, y + r * 0.45], color="k", lw=0.9, zorder=6)
             self.ax.plot([x, x + r * 0.35], [y, y - 0.1], color="k", lw=0.9, zorder=6)
+        elif trigger in ("link", "link_throw"):
+            a = r * 0.45
+            pts = [(x - a, y - a * 0.4), (x + a * 0.1, y - a * 0.4), (x + a * 0.1, y - a * 0.85),
+                   (x + a, y), (x + a * 0.1, y + a * 0.85), (x + a * 0.1, y + a * 0.4), (x - a, y + a * 0.4)]
+            self.ax.add_patch(Polygon(pts, closed=True, fc="#222222" if trigger == "link_throw" else "white",
+                                      ec="#222222", lw=0.8, zorder=6))
         if label:
             self._label(x, y, r, label, lpos, fs)
         return Node(x, y, r, r)
@@ -196,6 +202,14 @@ class Diagram:
         if label:
             self._label(x, y, h / 2, label, lpos, fs)
         return Node(x, y, w / 2, h / 2)
+
+    def group(self, x0, y0, x1, y1, title, fs=FS - 0.5):
+        """Группа (артефакт BPMN): пунктирная рамка со скруглёнными углами и заголовком."""
+        self.ax.add_patch(FancyBboxPatch((x0, y0), x1 - x0, y1 - y0,
+                                         boxstyle="round,pad=0,rounding_size=2.0", fill=False,
+                                         ec="#7a7a7a", lw=1.0, ls=(0, (6, 2, 1, 2)), zorder=1))
+        self.ax.text(x0 + 1.5, y1 - 1.2, title, ha="left", va="top", fontsize=fs, color="#555555",
+                     weight="bold", zorder=1)
 
     def note(self, x, y, text, h=8, fs=FS - 1):
         """Текстовая аннотация: открытая скобка слева."""
